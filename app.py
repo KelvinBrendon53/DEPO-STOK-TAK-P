@@ -2,13 +2,48 @@ import streamlit as st
 import gspread
 import pandas as pd
 
-# 1. Artık dosyayı değil, Streamlit'in güvenli hafızasındaki 'secrets'ı kullanıyoruz
-gcp_service_account = st.secrets["gcp_service_account"]
+# Sayfa ayarları
+st.set_page_config(page_title="Depo Stok Takip", layout="wide")
 
-# 2. Dosya okumak yerine dictionary (sözlük) yöntemini kullanıyoruz
-gc = gspread.service_account_from_dict(gcp_service_account)
+st.title("📦 DEPO STOK TAKİP PANELİ")
 
-# 3. Dosyanızın adını buraya yazın
-sh = gc.open("Google_Sheets_Dosyanızın_Adı") 
+# Google Sheets Bağlantısı (Secrets üzerinden)
+@st.cache_resource
+def get_gspread_client():
+    # Secrets dosyanızdaki tanımlı isim
+    gcp_credentials = st.secrets["gcp_service_account"]
+    return gspread.service_account_from_dict(gcp_credentials)
 
-# ... kodun geri kalanı ...
+def main():
+    try:
+        gc = get_gspread_client()
+        sh = gc.open("DEPO STOK TAKİP 24.06.2026")
+
+        # Sayfaları otomatik listele
+        worksheet_list = [ws.title for ws in sh.worksheets()]
+        secilen_sayfa = st.selectbox("Görüntülemek istediğin tabloyu seç:", worksheet_list)
+
+        # Veriyi çek
+        worksheet = sh.worksheet(secilen_sayfa)
+        data = worksheet.get_all_records()
+        df = pd.DataFrame(data)
+
+        # Tabloyu şık bir şekilde göster
+        st.subheader(f"Sayfa: {secilen_sayfa}")
+        st.dataframe(df, use_container_width=True)
+
+        # İndirme Butonu
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="Veriyi CSV Olarak İndir",
+            data=csv,
+            file_name=f'{secilen_sayfa}.csv',
+            mime='text/csv',
+        )
+
+    except Exception as e:
+        st.error("Verilere ulaşılamadı. Lütfen internet bağlantınızı veya Google Sheets yetkilerinizi kontrol edin.")
+        st.write(f"Hata detayı: {e}")
+
+if __name__ == "__main__":
+    main()
