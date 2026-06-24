@@ -2,22 +2,13 @@ import streamlit as st
 import gspread
 import pandas as pd
 
-# Servis hesabı bağlantısı
-gc = gspread.service_account(filename='service_account.json')
-sh = gc.open("DEPO STOK TAKİP 24.06.2026")
+# 1. Artık dosyayı değil, Streamlit'in güvenli hafızasındaki 'secrets'ı kullanıyoruz
+gcp_service_account = st.secrets["gcp_service_account"]
 
-st.title("DEPO STOK TAKİP")
+# 2. Dosya okumak yerine dictionary (sözlük) yöntemini kullanıyoruz
+gc = gspread.service_account_from_dict(gcp_service_account)
 
-# 1. Adım: Kullanıcının hangi sayfayı görmek istediğini seçmesini sağla
-secilen_sayfa = st.selectbox("Görüntülemek istediğin tabloyu seç:", ["STOK LİSTESİ", "MALZEME SARFİYAT TABLOSU"])
+# 3. Dosyanızın adını buraya yazın
+sh = gc.open("Google_Sheets_Dosyanızın_Adı") 
 
-# 2. Adım: Seçime göre veriyi çek
-worksheet = sh.worksheet(secilen_sayfa)
-data = worksheet.get_all_records()
-df = pd.DataFrame(data)
-
-# 3. Adım: Tabloyu ekrana bas
-st.dataframe(df)
-
-# Ekstra: Eğer veriyi indirmek istersen
-st.download_button("Veriyi İndir (CSV)", df.to_csv(), "veri.csv")
+# ... kodun geri kalanı ...
